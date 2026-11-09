@@ -1,0 +1,36 @@
+{# 全站悬浮客服：与 /support 全屏页共用 /api/agent/messages。标题栏可拖动、右下角可拉伸，位置与尺寸记在本地 #}
+<button class="xiaoma-fab" id="xiaomaFab" type="button" aria-label="打开小马客服">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H12l-4.6 3.6A.6.6 0 0 1 6.6 19v-3H6.5A2.5 2.5 0 0 1 4 13.5z"/><circle cx="9.5" cy="10" r="1"/><circle cx="14.5" cy="10" r="1"/></svg>
+    <span>小马</span>
+</button>
+
+<section class="xiaoma-panel" id="xiaomaPanel" hidden aria-label="小马在线客服">
+    <header class="xiaoma-head" id="xiaomaHead">
+        <div>
+            <p class="xiaoma-name">小马</p>
+            <p class="xiaoma-desc">商品、库存、订单进度，直接问</p>
+        </div>
+        <div class="xiaoma-head-actions">
+            <button type="button" id="xiaomaMax" class="xiaoma-max" aria-label="放大客服窗" title="放大 / 还原（双击标题栏同样可以）">
+                <svg class="ic-max" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5"/></svg>
+                <svg class="ic-restore" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 20v-5h5M20 9h-5V4M4 15h5v5"/></svg>
+            </button>
+            <button type="button" id="xiaomaClose" aria-label="收起客服窗"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+    </header>
+    <div class="xiaoma-log" id="xiaomaLog" aria-live="polite">
+        <div class="chat-row is-agent"><div class="chat-bubble">你好，我是小马。价格、库存、发货时效、订单进度都能问，说预算我也能推荐。标题栏可以拖动，右下角能拉伸大小。</div></div>
+    </div>
+    <div class="xiaoma-quick" id="xiaomaQuick"></div>
+    <div class="chat-pending" id="xiaomaPending" hidden></div>
+    <form class="xiaoma-form" id="xiaomaForm">
+        <input type="file" id="xiaomaFile" accept="image/png,image/jpeg,image/webp" hidden>
+        <label class="chat-attach" for="xiaomaFile" title="上传一张商品图，小马按主色、明暗和轮廓在站内找相似；截图也可以直接粘贴进来" aria-label="上传图片找相似">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.6" cy="10" r="1.4"/><path d="M5 17l4.4-4.6 3.1 3.1L16.2 12l2.8 5"/></svg>
+        </label>
+        <input type="text" id="xiaomaInput" placeholder="例如：露营桌还有货吗" maxlength="500" autocomplete="off">
+        <button type="submit" aria-label="发送"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h13M11 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="xiaoma-foot"><a href="/support">全屏对话页</a> · 回答来自站内数据实时查询</p>
+    <span class="xiaoma-grip" id="xiaomaGrip" aria-hidden="true"></span>
+</section>

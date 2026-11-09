@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.store_name }} · 数码、家居、户外精选{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <p class="text-label hero-tagline">{{ store_stats.products }} 件在售 · {{ store_stats.categories }} 个分类 · 库存实时可查</p>
+        <h1 class="heading-display hero-title">把好东西<br><em>挑准</em>就行</h1>
+        <p class="text-body hero-description">
+            数码、耳机、家居、厨具、户外、护肤都在同一个商城里。价格、可售库存、评价与订单进度全部来自站内数据库，
+            拿不准可以先问小马。
+        </p>
+        <div class="hero-actions">
+            <a href="/shop" class="btn-primary">开始挑选</a>
+            <a href="/support" class="btn-text">问问小马</a>
+        </div>
+    </div>
+    <div class="hero-image">
+        {% for p in slides %}
+        <div class="hero-slide{% if loop.first %} active{% endif %}" data-title="{{ p.title }}" data-price="{{ p.price_cents | money }}{% if p.available %} · {{ p.available }} 件可售{% endif %}">
+            <img src="{{ p.image or '/static/img/placeholder.svg' }}" alt="{{ p.title }}">
+        </div>
+        {% endfor %}
+        <div class="hero-image-overlay">
+            <p class="overlay-title" id="heroTitle">{{ slides[0].title if slides else '' }}</p>
+            <p class="overlay-price" id="heroPrice">{{ slides[0].price_cents | money if slides else '' }}</p>
+        </div>
+    </div>
+</section>
+
+<section class="featured-piece">
+    <div class="container">
+        <div class="featured-grid">
+            <div class="featured-image-wrapper">
+                <div class="featured-image"><img src="{{ slides[0].image if slides else '/static/img/placeholder.svg' }}" alt="{{ slides[0].title if slides else '精选商品' }}"></div>
+                <div class="featured-badge">本周精选</div>
+            </div>
+            <div class="featured-content">
+                <p class="text-label featured-label">{{ slides[0].brand or '站内精选' }}</p>
+                <h2 class="heading-display featured-title">{{ slides[0].title if slides else '暂无精选' }}</h2>
+                <p class="text-body featured-description">{{ slides[0].description if slides else '' }}</p>
+                <div class="featured-details">
+                    <div class="detail-row"><span class="detail-label">分类</span><span class="detail-value">{{ slides[0].category.name if slides and slides[0].category else '—' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">可售库存</span><span class="detail-value">{{ slides[0].available if slides else 0 }} 件</span></div>
+                    <div class="detail-row"><span class="detail-label">评价</span><span class="detail-value">{% if slides and slides[0].rating_count %}{{ '%.1f' | format(slides[0].rating_avg) }} 分 / {{ slides[0].rating_count }} 条{% else %}暂无评价{% endif %}</span></div>
+                </div>
+                <p class="featured-price">{{ slides[0].price_cents | money if slides else '' }}</p>
+                {% if slides %}<a href="/product/{{ slides[0].slug }}" class="btn-primary">查看详情</a>{% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="collections" id="categories">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2 class="heading-display section-title">按分类逛</h2>
+                <p class="text-body section-subtitle">点进去可以按品牌、价格区间和评分继续筛</p>
+            </div>
+            <a href="/shop" class="btn-text">看全部商品</a>
+        </div>
+        <div class="collections-grid">
+            {% for c in nav_categories[:5] %}
+            <div class="collection-item">
+                <div class="collection-image">
+                    <img src="{{ covers.get(c.slug) or '/static/img/placeholder.svg' }}" alt="{{ c.name }}">
+                </div>
+                <div class="collection-overlay">
+                    <h3 class="collection-name"><a href="/shop?category={{ c.slug }}">{{ c.name }}</a></h3>
+                    <p class="collection-count">{{ c.product_count }} 件在售</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="shop-block" id="hot">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2 class="heading-display section-title">卖得最多的</h2>
+                <p class="text-body section-subtitle">按历史订单真实销量排序，售罄的不会出现在这里</p>
+            </div>
+            <a href="/shop?sort=popular" class="btn-text">查看销量榜</a>
+        </div>
+        <div class="product-grid">
+            {% for p in hot %}{% include "partials/product_card.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="shop-block shop-block--soft" id="picks">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2 class="heading-display section-title">评分最高的</h2>
+                <p class="text-body section-subtitle">共 {{ store_stats.reviews }} 条已发布评价，可按星级筛选</p>
+            </div>
+            <a href="/shop?sort=rating" class="btn-text">查看好评榜</a>
+        </div>
+        <div class="product-grid product-grid--4">
+            {% for p in picks %}{% include "partials/product_card.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="testimonials">
+    <div class="container">
+        <div class="testimonials-header">
+            <p class="text-label">买过的人怎么说</p>
+            <h2 class="heading-display testimonials-title">站内真实评价</h2>
+            <p class="text-body testimonials-subtitle">以下内容摘自评价列表，附商品与评分</p>
+        </div>
+        <div class="testimonials-grid">
+            {% for v in voices %}
+            <div class="testimonial-card">
+                <div class="testimonial-stars" aria-label="{{ v.rating }} 星">
+                    {% for i in range(5) %}<span class="{% if i < v.rating %}on{% endif %}">★</span>{% endfor %}
+                </div>
+                <p class="testimonial-text">{{ v.title or v.product_title }}：{{ v.body }}</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-info">
+                        <p class="testimonial-name">{{ v.author }}</p>
+                        <p class="testimonial-detail"><a href="/product/{{ v.slug }}">{{ v.product_title }}</a> · {{ v.created_at | date }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="craftsmanship" id="delivery">
+    <div class="container">
+        <div class="craft-grid">
+            <div class="craft-content">
+                <p class="text-label">下单之前</p>
+                <h2 class="heading-display craft-title">配送、支付与售后</h2>
+                <p class="text-body craft-text">
+                    结算时可选以下配送方案，出库后在「我的订单」查看承运商与运单号；未支付订单 30 分钟后自动关闭并释放库存与优惠码。
+                </p>
+                <ul class="craft-list text-body">
+                    {% for p in shipping_plans %}
+                    <li>{{ p.name }}：{% if p.flat_cents %}{{ p.flat_cents | money }}{% else %}免费{% endif %}{% if p.eta %} · {{ p.eta }}{% endif %}{% if p.description %} · {{ p.description }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+                <a href="/support" class="btn-primary">让小马帮我查</a>
+            </div>
+            <div class="craft-image-wrapper">
+                <div class="craft-image"><img src="{{ fresh[0].image if fresh else '/static/img/placeholder.svg' }}" alt="{{ fresh[0].title if fresh else '新上架商品' }}"></div>
+                <div class="craft-stats">
+                    <div class="stat-item"><p class="stat-number">{{ store_stats.products }}</p><p class="stat-label">在售商品</p></div>
+                    <div class="stat-item"><p class="stat-number">{{ store_stats.sold }}</p><p class="stat-label">累计售出</p></div>
+                    <div class="stat-item"><p class="stat-number">{{ store_stats.reviews }}</p><p class="stat-label">已发布评价</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="shop-block" id="fresh">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2 class="heading-display section-title">最近上架</h2>
+                <p class="text-body section-subtitle">按发布时间倒序</p>
+            </div>
+            <a href="/shop?sort=newest" class="btn-text">查看全部新品</a>
+        </div>
+        <div class="product-grid product-grid--4">
+            {% for p in fresh %}{% include "partials/product_card.html" %}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

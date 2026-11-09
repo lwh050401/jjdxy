@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}订单 {{ order.order_no }} · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div class="container">
+        <p class="text-label">订单详情</p>
+        <h1 class="heading-display page-title">{{ order.order_no }}</h1>
+        <p class="text-body page-sub">下单时间 {{ order.placed_at | date }} · 当前状态 {{ order.status_text }}</p>
+    </div>
+</section>
+
+<section class="order-layout">
+    <div class="container">
+        <div class="order-main">
+            <section class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">商品</h2>
+                    <span class="badge badge--{{ order.status }}">{{ order.status_text }}</span>
+                </div>
+                <ul class="buy-list">
+                    {% for it in order["items"] %}
+                    <li>
+                        <img src="{{ it.image or '/static/img/placeholder.svg' }}" alt="{{ it.title }}">
+                        <div class="buy-info">
+                            <b>{{ it.title }}</b>
+                            <span>{{ it.variant_title }} · {{ it.sku }} × {{ it.qty }}{% if it.refunded_qty %} · 已退 {{ it.refunded_qty }}{% endif %}</span>
+                        </div>
+                        <em>{{ it.unit_price_cents | money }}</em>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% if order.buyer_note %}<p class="order-note">备注：{{ order.buyer_note }}</p>{% endif %}
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">进度</h2>
+                <ul class="timeline">
+                    {% for e in order.events %}
+                    <li><b>{{ e.message }}</b><span>{{ e.created_at | date }}</span></li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">收货与物流</h2>
+                {% set addr = order.shipping_address or {} %}
+                <p class="ship-to"><b>{{ addr.receiver }} {{ addr.phone }}</b>{{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}{% if addr.postal %}（{{ addr.postal }}）{% endif %}</p>
+                <ul class="kv kv--inline">
+                    <li><span>配送方案</span><b>{{ order.shipping_plan_code }}</b></li>
+                    <li><span>运单</span><b>{% if order.tracking_no %}{{ order.carrier }} · {{ order.tracking_no }}{% else %}尚未出库{% endif %}</b></li>
+                    <li><span>出库状态</span><b>{{ order.fulfillment_status_text }}</b></li>
+                </ul>
+            </section>
+
+            {% if order.refunds %}
+            <section class="panel">
+                <h2 class="panel-title">退款申请</h2>
+                <ul class="refund-list">
+                    {% for r in order.refunds %}
+                    <li>
+                        <b>{{ r.kind_text or r.kind }} · {{ r.amount_cents | money }}</b>
+                        <span>{{ r.status_text or r.status }}{% if r.handled_at %} · {{ r.handled_at | date }}{% endif %}</span>
+                        <p>{{ r.reason }}{% if r.admin_note %} · 商家说明：{{ r.admin_note }}{% endif %}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+        </div>
+
+        <aside class="order-side">
+            <section class="panel panel--tight">
+                <h2 class="panel-title">金额</h2>
+                <dl class="summary-lines">
+                    <div><dt>商品小计</dt><dd>{{ order.subtotal_cents | money }}</dd></div>
+                    {% if order.discount_cents %}<div><dt>优惠码 {{ order.coupon_code }}</dt><dd>-{{ order.discount_cents | money }}</dd></div>{% endif %}
+                    <div><dt>运费</dt><dd>{% if order.shipping_cents %}{{ order.shipping_cents | money }}{% else %}免费{% endif %}</dd></div>
+                    <div><dt>税费</dt><dd>{{ order.tax_cents | money }}</dd></div>
+                    <div class="summary-total"><dt>合计</dt><dd>{{ order.total_cents | money }}</dd></div>
+                    {% if order.refunded_cents %}<div><dt>已退款</dt><dd>{{ order.refunded_cents | money }}</dd></div>{% endif %}
+                </dl>
+                <p class="filter-hint">支付状态：{{ order.payment_status_text }}</p>
+            </section>
+
+            <section class="panel panel--tight">
+                <h2 class="panel-title">可以做什么</h2>
+                <div class="order-actions">
+                    {% if order.status == 'pending_payment' %}
+                    <button type="button" class="btn-primary btn-block" data-act="pay" data-order="{{ order.order_no }}" data-provider="alipay">继续支付</button>
+                    <button type="button" class="btn-ghost btn-block" data-act="cancel" data-order="{{ order.order_no }}">取消订单</button>
+                    {% endif %}
+                    {% if can_refund %}
+                    <form class="refund-form" id="refundForm" data-order="{{ order.order_no }}">
+                        <div class="form-group"><label class="form-label" for="rfKind">类型</label>
+                            <select class="form-input" id="rfKind" name="kind">
+                                <option value="refund">仅退款</option>
+                                <option value="return">退货退款</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label class="form-label" for="rfAmount">金额（可退 {{ order.refundable_cents | money }}）</label>
+                            <input class="form-input" id="rfAmount" type="number" step="0.01" min="0.01" max="{{ order.refundable_cents / 100 }}" value="{{ '%.2f' | format(order.refundable_cents / 100) }}">
+                        </div>
+                        <div class="form-group"><label class="form-label" for="rfReason">原因 *</label>
+                            <input class="form-input" id="rfReason" maxlength="200" placeholder="例如：拍错规格，尚未发货">
+                        </div>
+                        <button type="submit" class="btn-ghost btn-block">提交退款申请</button>
+                    </form>
+                    {% endif %}
+                    <a class="btn-text btn-block" href="/support">问小马这单到哪了</a>
+                </div>
+                <p class="auth-msg" id="orderMsg" role="status"></p>
+            </section>
+        </aside>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}运营后台登录 · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head page-head--admin">
+    <div class="container">
+        <p class="text-label">运营后台</p>
+        <h1 class="heading-display page-title">管理员登录</h1>
+        <p class="text-body page-sub">这个地址只放后台数据，商城页面与下单在前台。</p>
+    </div>
+</section>
+
+<section class="admin-shell admin-login">
+    <div class="container">
+        <div class="auth-card">
+            <form class="auth-form" id="adminLoginForm">
+                <div class="form-group"><label class="form-label" for="aEmail">管理员邮箱</label><input class="form-input" id="aEmail" type="email" required autocomplete="username"></div>
+                <div class="form-group"><label class="form-label" for="aPass">密码</label><input class="form-input" id="aPass" type="password" required autocomplete="current-password"></div>
+                <button type="submit" class="btn-primary btn-block">登录后台</button>
+            </form>
+            <p class="auth-msg{% if not_admin %} danger{% endif %}" id="adminLoginMsg" role="status"></p>
+            {% if not_admin %}<p class="filter-hint">当前浏览器里登录的是「{{ visitor_name }}」，这个账号不是管理员。买家账号请到 <a href="{{ shop_url }}/account">前台账户中心</a> 购物。</p>{% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('adminLoginForm');
+    const msg = document.getElementById('adminLoginMsg');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '正在核对账号……';
+        const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: document.getElementById('aEmail').value.trim(), password: document.getElementById('aPass').value }),
+        });
+        const body = await res.json();
+        if (body.ok) { location.href = '/admin'; return; }
+        msg.className = 'auth-msg danger';
+        msg.textContent = (body.error && body.error.message) || '登录失败';
+    });
+</script>
+{% endblock %}

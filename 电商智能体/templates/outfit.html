@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}场合穿搭 · Lumen 精选商城{% endblock %}
+
+{% block content %}
+<section class="shop-block outfit-page">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h1 class="heading-display section-title">按场合凑一套</h1>
+                <p class="text-body section-subtitle">场合、版型、建议身高、正式度都写在每件商品的参数里，这里只把这些真实字段拼成一套买得到的搭配。</p>
+            </div>
+            <a href="/support" class="btn-text">拿不准？问小马</a>
+        </div>
+
+        <form class="outfit-form" method="get" action="/outfit">
+            <div class="outfit-field">
+                <label for="ocOccasion">场合</label>
+                <select class="form-input" id="ocOccasion" name="occasion">
+                    <option value="">选一个场合</option>
+                    {% for name, count in vocab['场合'] %}
+                    <option value="{{ name }}" {% if form.occasion == name %}selected{% endif %}>{{ name }}（{{ count }} 款现货）</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="outfit-field">
+                <label for="ocLine">着装线</label>
+                <select class="form-input" id="ocLine" name="line">
+                    <option value="">不限</option>
+                    {% for name, count in vocab['着装线'] %}
+                    <option value="{{ name }}" {% if form.line == name %}selected{% endif %}>{{ name }}（{{ count }} 款现货）</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="outfit-field">
+                <label for="ocBody">体型</label>
+                <select class="form-input" id="ocBody" name="body">
+                    <option value="">不按体型筛</option>
+                    {% for name, count in vocab['体型'] %}
+                    <option value="{{ name }}" {% if form.body == name %}selected{% endif %}>{{ name }}（{{ count }} 款现货）</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="outfit-field">
+                <label for="ocHeight">身高（cm）</label>
+                <input class="form-input" id="ocHeight" name="height" type="number" min="130" max="200" step="1" placeholder="如 162" value="{{ form.height or '' }}">
+            </div>
+            <div class="outfit-field">
+                <label for="ocStyle">风格</label>
+                <select class="form-input" id="ocStyle" name="style">
+                    <option value="">不按风格筛</option>
+                    {% for name, count in vocab['风格'] %}
+                    <option value="{{ name }}" {% if form.style == name %}selected{% endif %}>{{ name }}（{{ count }} 款现货）</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="outfit-field">
+                <label for="ocPersonality">自己说的偏好</label>
+                <select class="form-input" id="ocPersonality" name="personality">
+                    <option value="">不填</option>
+                    {% for word in personality_words %}
+                    <option value="{{ word }}" {% if form.personality == word %}selected{% endif %}>{{ word }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="outfit-field">
+                <label for="ocBudget">单件价格上限（元）</label>
+                <input class="form-input" id="ocBudget" name="budget" type="number" min="0" step="50" placeholder="如 800" value="{{ form.budget or '' }}">
+            </div>
+            <button type="submit" class="btn-primary outfit-submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h13"/></svg>
+                凑一套
+            </button>
+        </form>
+        <p class="outfit-tip">「自己说的偏好」只把你写的词映射成风格（比如填「内向」按 简约、温柔 挑），页面不判断长相气质，也不承诺上身效果。</p>
+
+        {% if result %}
+        {% if result.found %}
+        <div class="outfit-summary">
+            <p class="text-body">{{ result.reason }}。</p>
+            <p class="outfit-badges">
+                <span>场合 {{ result.occasion }}</span>
+                <span>正式度 {{ result.formality }}</span>
+                {% if result.line != '不限' %}<span>{{ result.line }}</span>{% endif %}
+                {% if result.body_type %}<span>{{ result.body_type }}</span>{% endif %}
+                {% if result.height_cm %}<span>{{ result.height_cm }}cm</span>{% endif %}
+                {% for s in result.styles %}<span>{{ s }}风</span>{% endfor %}
+            </p>
+        </div>
+
+        <div class="look-list">
+            {% for look in result.looks %}
+            <article class="look-card">
+                <header class="look-head">
+                    <h2 class="heading-display look-title">{{ look.name }}</h2>
+                    <p class="look-sum">合计 <b>{{ look['items'] | map(attribute='price_cents') | sum | money }}</b> · {{ look['items'] | length }} 件 · {{ look.line }}</p>
+                </header>
+                <div class="look-pieces">
+                    {% for piece in look['items'] %}
+                    <a class="look-piece" href="{{ piece.url }}">
+                        <span class="look-media">
+                            <img src="{{ piece.image or '/static/img/placeholder.svg' }}" alt="{{ piece.title }}" loading="lazy">
+                            <span class="look-role">{{ piece.role }}</span>
+                        </span>
+                        <span class="look-body">
+                            <b>{{ piece.title }}</b>
+                            <em>{{ piece.price_cents | money }}{% if piece.available %} · 可售 {{ piece.available }}{% else %} · 暂时售罄{% endif %}</em>
+                            <span class="look-why">{{ piece.why }}</span>
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+                <ul class="look-notes">
+                    {% for n in look.notes %}<li>{{ n }}</li>{% endfor %}
+                </ul>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="outfit-empty">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/></svg>
+            <p>{{ result.message }}</p>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="outfit-empty">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l6 5 6-5M6 20l6-5 6 5"/></svg>
+            <p>先选场合，再按需要填体型、身高或偏好。场合词只在这站商品标了「适用场合」时才会命中，{{ vocab['场合'] | length }} 个场合词都有现货。</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

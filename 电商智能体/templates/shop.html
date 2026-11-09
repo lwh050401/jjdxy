@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ active_cat.name if active_cat else ('搜索「' + query + '」' if query else '全部商品') }} · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div class="container">
+        <p class="text-label">商品目录</p>
+        <h1 class="heading-display page-title">{{ active_cat.name if active_cat else ('搜索「' + query + '」' if query else '全部商品') }}</h1>
+        <p class="text-body page-sub">{{ result.total }} 件商品{% if active_cat and active_cat.description %} · {{ active_cat.description }}{% endif %}</p>
+    </div>
+</section>
+
+<section class="shop-layout">
+    <div class="container">
+        <aside class="filters">
+            <div class="filter-group">
+                <h3 class="filter-title">分类</h3>
+                <ul class="filter-list filter-list--tall">
+                    <li><a class="{% if not filters.category %}on{% endif %}" href="{{ link(category='', page='') }}">全部</a></li>
+                    {% for c in nav_categories %}
+                    <li><a class="{% if filters.category == c.slug %}on{% endif %}" href="{{ link(category=c.slug, page='') }}">{{ c.name }}<span>{{ c.product_count }}</span></a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if facets.brands %}
+            <div class="filter-group">
+                <h3 class="filter-title">品牌</h3>
+                <ul class="filter-list">
+                    <li><a class="{% if not filters.brand %}on{% endif %}" href="{{ link(brand='', page='') }}">不限</a></li>
+                    {% for b in facets.brands %}
+                    <li><a class="{% if filters.brand == b.name %}on{% endif %}" href="{{ link(brand=b.name, page='') }}">{{ b.name }}<span>{{ b.count }}</span></a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <div class="filter-group">
+                <h3 class="filter-title">价格区间（元）</h3>
+                <form class="price-form" action="/shop" method="get">
+                    <input type="hidden" name="category" value="{{ filters.category }}">
+                    <input type="hidden" name="brand" value="{{ filters.brand }}">
+                    <input type="hidden" name="q" value="{{ filters.q }}">
+                    <input type="number" name="min_price" min="0" placeholder="{{ (facets.price.min / 100) | round(0) | int }}" value="{{ filters.min_price or '' }}">
+                    <span>—</span>
+                    <input type="number" name="max_price" min="0" placeholder="{{ (facets.price.max / 100) | round(0) | int }}" value="{{ filters.max_price or '' }}">
+                    <button type="submit" class="btn-ghost">确定</button>
+                </form>
+                <p class="filter-hint">站内价格跨度 {{ facets.price.min | money }} 至 {{ facets.price.max | money }}</p>
+            </div>
+            {% if facets.tags %}
+            <div class="filter-group">
+                <h3 class="filter-title">标签</h3>
+                <div class="chips">
+                    {% for t in facets.tags[:12] %}
+                    <a class="chip {% if filters.tag == t.name %}on{% endif %}" href="{{ link(tag=t.name, page='') }}">{{ t.name }} <i>{{ t.count }}</i></a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="filter-group">
+                <h3 class="filter-title">其他</h3>
+                <ul class="filter-list">
+                    <li><a class="{% if filters.in_stock %}on{% endif %}" href="{{ link(in_stock=1 if not filters.in_stock else '', page='') }}">只看有货</a></li>
+                    <li><a href="{{ link(q='', category='', brand='', tag='', min_price='', max_price='', in_stock='', sort='', page='') }}">清空筛选</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="shop-main">
+            <div class="sortbar">
+                <div class="chips">
+                    {% for code, label in sort_options %}
+                    <a class="chip {% if filters.sort == code %}on{% endif %}" href="{{ link(sort=code if code != 'relevant' else '', page='') }}">{{ label }}</a>
+                    {% endfor %}
+                </div>
+                {% if filters.q %}<p class="sortbar-hint">搜索「{{ filters.q }}」</p>{% endif %}
+            </div>
+
+            {% if result["items"] %}
+            <div class="product-grid">
+                {% for p in result["items"] %}{% include "partials/product_card.html" %}{% endfor %}
+            </div>
+
+            {% if result.pages > 1 %}
+            {# 商品上千后分页会有上百页，只渲染首尾与当前页附近 #}
+            {% set shown = [] %}
+            {% for n in range(1, result.pages + 1) %}
+                {% if n <= 2 or n > result.pages - 2 or (n >= result.page - 2 and n <= result.page + 2) %}{% set _ = shown.append(n) %}{% endif %}
+            {% endfor %}
+            <nav class="pager" aria-label="分页">
+                {% if result.page > 1 %}<a href="{{ link(page=result.page - 1) }}">上一页</a>{% endif %}
+                {% set done = [] %}
+                {% for n in shown %}
+                {% if done and n - done[-1] > 1 %}<span class="pager-gap">…</span>{% endif %}
+                <a class="{% if n == result.page %}on{% endif %}" href="{{ link(page=n if n > 1 else '') }}">{{ n }}</a>
+                {% set _ = done.append(n) %}
+                {% endfor %}
+                {% if result.page < result.pages %}<a href="{{ link(page=result.page + 1) }}">下一页</a>{% endif %}
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="empty">
+                <p class="empty-title">没有符合条件的商品</p>
+                <p>换个关键词，或者<a href="/shop">看全部商品</a>。也可以让<a href="/support">小马</a>按预算帮你挑。</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

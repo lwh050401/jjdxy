@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}运营后台 · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head page-head--admin">
+    <div class="container">
+        <p class="text-label">运营后台</p>
+        <h1 class="heading-display page-title">{{ settings.store_name }}</h1>
+        <p class="text-body page-sub">数据直接读写 MySQL，与前台、小马用的是同一份口径 · 当前管理员 {{ user.name }}</p>
+    </div>
+</section>
+
+<section class="admin-shell">
+    <div class="container">
+        <nav class="admin-tabs" id="adminTabs">
+            <button type="button" class="admin-tab on" data-pane="overview">概览</button>
+            <button type="button" class="admin-tab" data-pane="products">商品</button>
+            <button type="button" class="admin-tab" data-pane="inventory">规格与库存</button>
+            <button type="button" class="admin-tab" data-pane="orders">订单</button>
+            <button type="button" class="admin-tab" data-pane="refunds">退款{% if overview.orders.open_refunds %} <b>{{ overview.orders.open_refunds }}</b>{% endif %}</button>
+            <button type="button" class="admin-tab" data-pane="members">会员</button>
+            <button type="button" class="admin-tab" data-pane="faqs">知识库</button>
+            <button type="button" class="admin-tab" data-pane="agent">小马会话</button>
+        </nav>
+
+        <div class="admin-pane on" data-pane="overview">
+            <ul class="metric-grid">
+                <li><b>{{ overview.orders.orders }}</b><span>累计订单</span></li>
+                <li><b>{{ overview.orders.paid }}</b><span>已支付</span></li>
+                <li><b>{{ overview.orders.gmv_cents | money }}</b><span>已收金额</span></li>
+                <li><b>{{ overview.orders.pending_payment }}</b><span>待付款</span></li>
+                <li><b>{{ overview.orders.open_refunds }}</b><span>待处理退款</span></li>
+                <li><b>{{ overview.agent.threads }}</b><span>小马会话</span></li>
+                <li><b>{{ overview.agent.messages }}</b><span>往来消息</span></li>
+            </ul>
+            <div class="admin-cols">
+                <section class="panel">
+                    <h2 class="panel-title">工具调用</h2>
+                    <table class="data-table"><thead><tr><th>工具</th><th>次数</th><th>平均耗时</th></tr></thead>
+                        <tbody>{% for t in overview.tool_usage %}<tr><td>{{ t.label }}<span class="cell-sub">{{ t.tool }}</span></td><td>{{ t.calls }}</td><td>{{ t.avg_ms | int }} ms</td></tr>{% else %}<tr><td colspan="3">还没有调用记录</td></tr>{% endfor %}</tbody>
+                    </table>
+                </section>
+                <section class="panel">
+                    <h2 class="panel-title">库存告急</h2>
+                    <table class="data-table"><thead><tr><th>商品</th><th>规格</th><th>可售</th></tr></thead>
+                        <tbody>{% for s in overview.low_stock %}<tr><td>{{ s.product_title }}</td><td>{{ s.title }}</td><td class="{% if s.available <= 0 %}danger{% else %}warn{% endif %}">{{ s.available }}</td></tr>{% else %}<tr><td colspan="3">库存都健康</td></tr>{% endfor %}</tbody>
+                    </table>
+                </section>
+            </div>
+        </div>
+
+        <div class="admin-pane" data-pane="products">
+            <form class="admin-bar" id="productSearch">
+                <input class="form-input" name="q" placeholder="搜标题 / 品牌 / 标签">
+                <select class="form-input" name="status"><option value="">全部状态</option><option value="active">在售</option><option value="draft">草稿</option><option value="archived">已下架</option></select>
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <table class="data-table"><thead><tr><th>商品</th><th>品牌</th><th>价格</th><th>状态</th><th>精选</th><th>操作</th></tr></thead><tbody id="productRows"></tbody></table>
+            <p class="filter-hint" id="productHint">这里只改标题、状态与精选标记；价格与库存在「规格与库存」里改。</p>
+        </div>
+
+        <div class="admin-pane" data-pane="inventory">
+            <form class="admin-bar" id="variantSearch">
+                <input class="form-input" name="q" placeholder="搜 SKU / 规格名 / 商品名">
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <p class="auth-msg" id="variantMsg" role="status"></p>
+            <table class="data-table"><thead><tr><th>商品 / 规格</th><th>SKU</th><th>价格（元）</th><th>库存（件）</th><th>已占用</th><th>可售</th><th>状态</th><th>操作</th></tr></thead><tbody id="variantRows"></tbody></table>
+            <p class="filter-hint">价格与库存都写在规格上，商品卡取最低规格价，购物车读的就是这一行。</p>
+            <h2 class="panel-title">最近的库存流水</h2>
+            <table class="data-table"><thead><tr><th>规格</th><th>SKU</th><th>变动</th><th>原因</th><th>时间</th></tr></thead><tbody id="stockRows"></tbody></table>
+        </div>
+
+        <div class="admin-pane" data-pane="orders">
+            <form class="admin-bar" id="orderSearch">
+                <input class="form-input" name="q" placeholder="订单号 / 邮箱 / 手机">
+                <select class="form-input" name="status"><option value="">全部状态</option><option value="pending_payment">待付款</option><option value="paid">待发货</option><option value="shipped">已发货</option><option value="delivered">已送达</option><option value="completed">交易完成</option><option value="cancelled">已取消</option><option value="refunded">已退款</option></select>
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <table class="data-table"><thead><tr><th>订单号</th><th>买家</th><th>金额</th><th>状态</th><th>运单</th><th>操作</th></tr></thead><tbody id="orderRows"></tbody></table>
+        </div>
+
+        <div class="admin-pane" data-pane="refunds">
+            <form class="admin-bar" id="refundSearch">
+                <input class="form-input" name="q" placeholder="订单号 / 邮箱">
+                <select class="form-input" name="status"><option value="">全部</option><option value="pending">待处理</option><option value="approved">已同意</option><option value="rejected">已驳回</option><option value="cancelled">买家撤销</option></select>
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <table class="data-table"><thead><tr><th>申请</th><th>订单</th><th>类型 / 金额</th><th>原因</th><th>状态</th><th>操作</th></tr></thead><tbody id="refundRows"></tbody></table>
+        </div>
+
+        <div class="admin-pane" data-pane="members">
+            <form class="admin-bar" id="memberSearch">
+                <input class="form-input" name="q" placeholder="邮箱 / 昵称 / 手机">
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <table class="data-table"><thead><tr><th>会员</th><th>联系方式</th><th>订单</th><th>已支付</th><th>余额</th><th>操作</th></tr></thead><tbody id="memberRows"></tbody></table>
+        </div>
+
+        <div class="admin-pane" data-pane="faqs">
+            <form class="faq-form" id="faqForm">
+                <input type="hidden" id="faqId">
+                <div class="form-row form-row--3">
+                    <div class="form-group"><label class="form-label">问题</label><input class="form-input" id="faqQ" maxlength="200"></div>
+                    <div class="form-group"><label class="form-label">关键词（逗号分隔，离线大脑用它匹配）</label><input class="form-input" id="faqK" maxlength="255"></div>
+                    <div class="form-group"><label class="form-label">分类</label>
+                        <select class="form-input" id="faqKind"><option value="shipping">配送</option><option value="refund">售后</option><option value="payment">支付</option><option value="account">账户</option><option value="promo">优惠</option><option value="other">其他</option></select>
+                    </div>
+                </div>
+                <div class="form-group"><label class="form-label">答复</label><textarea class="form-input" id="faqA" rows="3" maxlength="2000"></textarea></div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">排序</label><input class="form-input" id="faqSort" type="number" value="100" style="max-width:120px"></div>
+                    <button type="submit" class="btn-ghost">保存</button>
+                </div>
+            </form>
+            <table class="data-table"><thead><tr><th>问题</th><th>分类</th><th>命中</th><th>状态</th><th>操作</th></tr></thead><tbody id="faqRows"></tbody></table>
+        </div>
+
+        <div class="admin-pane" data-pane="agent">
+            <form class="admin-bar" id="threadSearch">
+                <input class="form-input" name="q" placeholder="搜会话里的提问 / 订单号">
+                <select class="form-input" name="status"><option value="">全部</option><option value="resolved">已解决</option><option value="open">未解决</option><option value="escalated">转人工</option></select>
+                <button type="submit" class="btn-ghost">查询</button>
+            </form>
+            <div class="admin-cols">
+                <section class="panel"><h2 class="panel-title">会话</h2><ul class="thread-list" id="threadList"></ul></section>
+                <section class="panel"><h2 class="panel-title">明细</h2><div id="threadDetail" class="thread-detail"><p class="filter-hint">点左侧任一会话，看消息与小马调了哪些工具。</p></div></section>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

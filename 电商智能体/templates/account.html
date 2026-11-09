@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}{% if user %}账户中心{% else %}登录 / 注册{% endif %} · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+{% if user %}
+<section class="page-head">
+    <div class="container">
+        <p class="text-label">账户中心</p>
+        <h1 class="heading-display page-title">{{ user.name }}</h1>
+        <p class="text-body page-sub">{{ user.email }} · 注册于 {{ user.created_at | date }}{% if user.role == 'admin' %} · 管理员{% endif %}</p>
+    </div>
+</section>
+
+<section class="account-layout">
+    <div class="container">
+        <div class="account-main">
+            <section class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">我的订单</h2>
+                    <a href="/support" class="btn-text">查进度？问小马</a>
+                </div>
+                {% if orders %}
+                <ul class="order-list">
+                    {% for o in orders %}
+                    <li class="order-card">
+                        <header>
+                            <a class="order-no" href="/order/{{ o.order_no }}">{{ o.order_no }}</a>
+                            <span class="badge">{{ o.status_text }}</span>
+                            <span class="muted">{{ o.placed_at | date }} · {{ o["items"] | length }} 种商品</span>
+                            <b class="order-total">{{ o.total_cents | money }}</b>
+                        </header>
+                        <ul class="order-thumbs">
+                            {% for it in o["items"][:5] %}
+                            <li><img src="{{ it.image or '/static/img/placeholder.svg' }}" alt="{{ it.title }}" title="{{ it.title }} × {{ it.qty }}"></li>
+                            {% endfor %}
+                        </ul>
+                        {% if o.tracking_no %}<p class="order-ship">{{ o.carrier }} · {{ o.tracking_no }}</p>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty"><p class="empty-title">还没有订单</p><p><a href="/shop">去挑商品</a>，下单后在这里看物流与售后。</p></div>
+                {% endif %}
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><h2 class="panel-title">收货地址</h2><span class="muted">最多保存 10 条</span></div>
+                <div class="addr-list">
+                    {% for a in addresses %}
+                    <article class="addr-item" data-id="{{ a.id }}">
+                        <b>{{ a.receiver }} {{ a.phone }}{% if a.is_default_shipping %} <em class="addr-tag">默认</em>{% endif %}</b>
+                        <p>{{ a.province }}{{ a.city }}{{ a.district }} {{ a.detail }}{% if a.postal %} · {{ a.postal }}{% endif %}</p>
+                        <button type="button" class="icon-btn" data-act="del-addr" aria-label="删除地址"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/></svg></button>
+                    </article>
+                    {% endfor %}
+                </div>
+                <details class="addr-form">
+                    <summary class="btn-ghost">新增收货地址</summary>
+                    <div class="form-row form-row--3">
+                        <div class="form-group"><label class="form-label">收货人</label><input class="form-input" id="ad_receiver"></div>
+                        <div class="form-group"><label class="form-label">电话</label><input class="form-input" id="ad_phone"></div>
+                        <div class="form-group"><label class="form-label">标签</label><input class="form-input" id="ad_tag" placeholder="家 / 公司"></div>
+                    </div>
+                    <div class="form-row form-row--3">
+                        <div class="form-group"><label class="form-label">省</label><input class="form-input" id="ad_province"></div>
+                        <div class="form-group"><label class="form-label">市</label><input class="form-input" id="ad_city"></div>
+                        <div class="form-group"><label class="form-label">区县</label><input class="form-input" id="ad_district"></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">详细地址</label><input class="form-input" id="ad_detail"></div>
+                    <label class="check"><input type="checkbox" id="ad_default"> 设为默认收货地址</label>
+                    <button type="button" class="btn-primary" id="saveAddr">保存地址</button>
+                </details>
+            </section>
+        </div>
+
+        <aside class="account-side">
+            <section class="panel panel--tight">
+                <h2 class="panel-title">钱包余额</h2>
+                <p class="wallet" id="walletBalance">{{ user.balance_cents | money }}</p>
+                <form class="topup-form" id="topupForm">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label" for="topupYuan">充值金额（元）</label>
+                            <input class="form-input" id="topupYuan" type="number" min="{{ wallet.topup_min_cents / 100 }}" max="{{ wallet.topup_max_cents / 100 }}" step="1" value="100">
+                        </div>
+                        <button type="submit" class="btn-ghost topup-btn">模拟充值</button>
+                    </div>
+                    <p class="filter-hint">单次 {{ wallet.topup_min_cents | money }} 至 {{ wallet.topup_max_cents | money }}，走模拟网关、不产生真实扣款。</p>
+                </form>
+                <p class="auth-msg" id="topupMsg" role="status"></p>
+                {% if wallet.entries %}
+                <ul class="ledger">
+                    {% for b in wallet.entries %}
+                    <li><span>{{ b.created_at | date }}</span><em>{{ b.kind | balance_kind }}{% if b.reference_number %} · {{ b.reference_number }}{% endif %}</em><b class="{% if b.amount_cents < 0 %}minus{% endif %}">{{ b.amount_cents | signed_money }}</b></li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="filter-hint">还没有余额流水。</p>
+                {% endif %}
+                <p class="filter-hint">结算时选「钱包余额」就能用这里的钱付款。</p>
+            </section>
+            <section class="panel panel--tight">
+                <h2 class="panel-title">账户信息</h2>
+                <ul class="kv">
+                    <li><span>邮箱</span><b>{{ user.email }}</b></li>
+                    <li><span>手机</span><b>{{ user.phone or '未填写' }}</b></li>
+                    <li><span>角色</span><b>{{ '管理员' if user.role == 'admin' else '买家' }}</b></li>
+                    <li><span>状态</span><b>{{ user.status | user_status }}</b></li>
+                </ul>
+                {% if user.role == 'admin' %}<a class="btn-ghost btn-block" href="{{ admin_url }}/admin">进入后台</a>{% endif %}
+                <button type="button" class="btn-text btn-block" id="logoutBtn">退出登录</button>
+            </section>
+        </aside>
+    </div>
+</section>
+{% else %}
+<section class="auth-page">
+    <div class="container">
+        <div class="auth-grid">
+            <div class="auth-copy">
+                <p class="text-label">账户中心</p>
+                <h1 class="heading-display auth-title">登录后订单与售后都在一处</h1>
+                <ul class="craft-list text-body">
+                    <li>查看订单状态、承运商与运单号</li>
+                    <li>保存收货地址，结算时一键带入</li>
+                    <li>钱包余额可用于支付，明细可查</li>
+                    <li>未支付订单可自助取消，已支付可发起退款申请</li>
+                </ul>
+                <p class="text-body muted">游客也可以下单，结算后请保存订单号，之后用订单号问小马查进度。</p>
+            </div>
+            <div class="auth-card">
+                <div class="tabs" role="tablist">
+                    <button type="button" class="tab on" data-tab="login" role="tab">登录</button>
+                    <button type="button" class="tab" data-tab="register" role="tab">注册</button>
+                </div>
+                <form class="auth-form" id="loginForm">
+                    <div class="form-group"><label class="form-label" for="lEmail">邮箱</label><input class="form-input" id="lEmail" type="email" required autocomplete="email"></div>
+                    <div class="form-group"><label class="form-label" for="lPass">密码</label><input class="form-input" id="lPass" type="password" required autocomplete="current-password"></div>
+                    <button type="submit" class="btn-primary btn-block">登录</button>
+                </form>
+                <form class="auth-form" id="registerForm" hidden>
+                    <div class="form-group"><label class="form-label" for="rName">昵称</label><input class="form-input" id="rName" required></div>
+                    <div class="form-group"><label class="form-label" for="rEmail">邮箱</label><input class="form-input" id="rEmail" type="email" required autocomplete="email"></div>
+                    <div class="form-group"><label class="form-label" for="rPass">密码（至少 8 位，含字母与数字）</label><input class="form-input" id="rPass" type="password" required minlength="8" autocomplete="new-password"></div>
+                    <button type="submit" class="btn-primary btn-block">创建账户</button>
+                </form>
+                <p class="auth-msg" id="authMsg" role="status"></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

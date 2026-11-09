@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}购物车 · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div class="container">
+        <p class="text-label">购物流程</p>
+        <h1 class="heading-display page-title">购物车</h1>
+        <p class="text-body page-sub">数量与优惠码改动会即时重算，价格口径与结算页一致</p>
+    </div>
+</section>
+
+{% if items %}
+<section class="cart-layout">
+    <div class="container">
+        <div class="cart-list">
+            {% for it in items %}
+            <article class="cart-row" data-item="{{ it.id }}">
+                <a class="cart-thumb" href="/product/{{ it.slug }}"><img src="{{ it.image or '/static/img/placeholder.svg' }}" alt="{{ it.title }}"></a>
+                <div class="cart-info">
+                    <a class="cart-name" href="/product/{{ it.slug }}">{{ it.title }}</a>
+                    <p class="cart-variant">{% if it.variant_title %}{{ it.variant_title }}{% else %}{% for k, v in it.options.items() %}{{ v }}{% if not loop.last %} · {% endif %}{% endfor %}{% endif %}</p>
+                    <p class="cart-unit">{{ it.unit_price_cents | money }} / 件{% if it.available %}<span class="muted"> · 可售 {{ it.available }} 件</span>{% endif %}</p>
+                </div>
+                <div class="qty" role="group" aria-label="数量">
+                    <button type="button" data-act="dec" aria-label="减少">−</button>
+                    <input type="number" value="{{ it.qty }}" min="1" max="{{ it.available }}" data-act="qty" aria-label="数量">
+                    <button type="button" data-act="inc" aria-label="增加">+</button>
+                </div>
+                <p class="cart-line">{{ it.line_total_cents | money }}</p>
+                <button type="button" class="icon-btn" data-act="remove" aria-label="删除商品"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/></svg></button>
+            </article>
+            {% endfor %}
+            <div class="cart-actions">
+                <a href="/shop" class="btn-text">继续挑商品</a>
+                <button type="button" class="btn-ghost" id="clearCart">清空购物车</button>
+            </div>
+        </div>
+
+        <aside class="summary" id="summary" data-plan="{{ (quote.plan.code if quote) or 'STANDARD' }}" data-coupon="{{ (cart or {}).get('coupon_code') or '' }}">
+            <h2 class="heading-display summary-title">小结算</h2>
+            <dl class="summary-lines">
+                <div><dt>商品小计</dt><dd id="sumSubtotal">{{ subtotal | money }}</dd></div>
+                <div><dt id="sumCouponLabel">优惠码</dt><dd id="sumCoupon">{% if quote and quote.discount_cents %}-{{ quote.discount_cents | money }}{% else %}未使用{% endif %}</dd></div>
+                <div><dt id="sumShippingLabel">运费</dt><dd id="sumShipping">{% if not quote %}待计算{% elif quote.shipping_cents %}{{ quote.shipping_cents | money }}{% else %}免费{% endif %}</dd></div>
+                <div><dt>税费</dt><dd id="sumTax">{% if quote %}{{ quote.tax_cents | money }}{% else %}待计算{% endif %}</dd></div>
+                <div class="summary-total"><dt>应付合计</dt><dd id="sumTotal">{% if quote %}{{ quote.total_cents | money }}{% else %}待计算{% endif %}</dd></div>
+            </dl>
+
+            <div class="summary-field">
+                <label class="form-label" for="planSelect">配送方案</label>
+                <select id="planSelect" class="form-input">
+                    {% for p in shipping_plans %}
+                    <option value="{{ p.code }}" {% if quote and quote.plan.code == p.code %}selected{% endif %}>{{ p.name }} · {% if p.flat_cents %}{{ p.flat_cents | money }}{% else %}免费{% endif %}{% if p.eta %} · {{ p.eta }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="summary-field">
+                <label class="form-label" for="couponInput">优惠码</label>
+                <div class="inline-field">
+                    <input id="couponInput" class="form-input" placeholder="例如 SAVE10" value="{{ (cart or {}).get('coupon_code') or '' }}">
+                    <button type="button" class="btn-ghost" id="applyCoupon">使用</button>
+                </div>
+                <p class="filter-hint"><a href="/support">问小马现在有哪些码</a></p>
+            </div>
+
+            <a class="btn-primary btn-block" href="/checkout">去结算</a>
+            <p class="summary-note">演示站点，支付不产生真实扣款。</p>
+        </aside>
+    </div>
+</section>
+{% else %}
+<section class="container">
+    <div class="empty">
+        <p class="empty-title">购物车还是空的</p>
+        <p><a href="/shop">去挑商品</a>，或者让<a href="/support">小马</a>按预算推荐几件。</p>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

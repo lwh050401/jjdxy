@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ title | default('页面不存在') }} · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="container not-found">
+    <p class="text-label">Lumen 精选商城</p>
+    <h1 class="heading-display not-found-title">{{ title | default('页面不存在') }}</h1>
+    <p class="text-body">{{ hint | default('这个地址在站内没有对应页面。') }}</p>
+    <div class="not-found-actions">
+        <a class="btn-primary" href="{{ back | default('/') }}">换个入口</a>
+        <a class="btn-ghost" href="/support">找小马帮忙</a>
+    </div>
+    <form class="header-search not-found-search" action="/shop" method="get" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+        <input type="search" name="q" placeholder="搜商品、品牌" aria-label="搜索商品">
+    </form>
+</section>
+{% endblock %}

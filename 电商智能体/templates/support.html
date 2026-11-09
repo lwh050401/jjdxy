@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}小马 · 在线客服{% endblock %}
+
+{% block content %}
+<section class="support-page">
+    <div class="container">
+        <div class="support-grid">
+            <aside class="support-side">
+                <p class="text-label">站内助理</p>
+                <h1 class="heading-display support-title">小马</h1>
+                <p class="text-body">价格、库存、发货时效、订单进度、优惠码，答案里的数字都从当前数据库现查。</p>
+                <ul class="support-caps">
+                    <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>商品检索：按品类、品牌、预算找货</li>
+                    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>订单查询：报订单号即可看到物流与状态</li>
+                    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/></svg>库存查询：具体到规格的可用数量</li>
+                    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5z"/></svg>推荐：按预算和用途挑商品</li>
+                    <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.6" cy="10" r="1.4"/><path d="M5 17l4.4-4.6 3.1 3.1L16.2 12l2.8 5"/></svg>按图找相似：传图或粘贴截图，比主色、明暗与轮廓</li>
+                </ul>
+                <p class="support-model">回答方式：{% if model == 'offline-router' %}站内意图路由{% else %}{{ model }}{% endif %} · 每次回答都会真实调用上面这些工具查数据。</p>
+                <div class="support-faq">
+                    <h2 class="heading-display support-faq-title">常见问题</h2>
+                    <ul>{% for f in faqs %}<li><button type="button" class="faq-ask" data-q="{{ f.question }}">{{ f.question }}</button></li>{% endfor %}</ul>
+                </div>
+            </aside>
+
+            <div class="support-chat">
+                <div class="support-log" id="supportLog" aria-live="polite">
+                    <div class="chat-row is-agent">
+                        <div class="chat-bubble">你好，我是小马。可以直接问「露营桌还有货吗」「200 元以内推荐个礼物」，或者把 LM 开头的订单号发给我查进度。</div>
+                    </div>
+                </div>
+                <div class="xiaoma-quick" id="supportQuick"></div>
+                <div class="chat-pending" id="supportPending" hidden></div>
+                <form class="support-form" id="supportForm">
+                    <input type="file" id="supportFile" accept="image/png,image/jpeg,image/webp" hidden>
+                    <label class="chat-attach" for="supportFile" title="上传一张商品图，小马按主色、明暗和轮廓在站内找相似；截图也可以直接粘贴进来" aria-label="上传图片找相似">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.6" cy="10" r="1.4"/><path d="M5 17l4.4-4.6 3.1 3.1L16.2 12l2.8 5"/></svg>
+                    </label>
+                    <input type="text" id="supportInput" placeholder="说点什么，或传张图找相似…" maxlength="500" autocomplete="off">
+                    <button type="submit" class="btn-primary">发送</button>
+                </form>
+                <p class="support-foot">需要人工：把订单号和诉求发到 <a href="mailto:{{ settings.support_email }}">{{ settings.support_email }}</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

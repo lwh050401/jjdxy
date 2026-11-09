@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.coverage
+
+# 本地配置与运行数据：.env 里是数据库密码与会话密钥，绝不提交
+.env
+.env.*
+!.env.example
+data/uploads/
+*.log
+.run/*.json
+.run/shots/
+
+# 编辑器
+.idea/
+.vscode/
+.DS_Store

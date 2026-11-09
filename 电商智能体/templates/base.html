@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+{#- 前台与后台分端口跑：后台进程里 shop_url 是前台绝对地址，前台自己则是空串。
+    所有指向商城页面的链接都要带这个前缀，否则在后台端口上会点成自己的 404。 -#}
+{% set S = shop_url %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ settings.store_name }}{% endblock %}</title>
+    <meta name="description" content="{{ settings.store_name }}：数码、家居、户外精选好物，库存与价格实时可查。">
+    <link rel="stylesheet" href="/static/template/maison.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/site.css?v={{ asset_v }}">
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+    <script>window.LUMEN_URLS = {shop: {{ S|tojson }}, admin: {{ admin_url|tojson }}};</script>
+</head>
+<body>
+{% if surface == 'admin' %}
+<header class="site-header site-header--admin">
+    <div class="container">
+        <div class="header-inner">
+            <a href="{{ S }}/" class="logo">Lumen <span>运营后台</span></a>
+            <nav class="nav-main">
+                <a href="{{ S }}/shop">回到商城</a>
+                {% if user and user.role == 'admin' %}
+                <span class="nav-admin-user">{{ user.name }}</span>
+                <button type="button" class="nav-btn" id="adminLogout">退出登录</button>
+                {% elif user %}
+                <a href="{{ S }}/account">{{ user.name }}</a>
+                <a href="/admin/login">用管理员登录</a>
+                {% else %}
+                <a href="/admin/login">登录</a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</header>
+{% else %}
+<header class="site-header" id="header">
+    <div class="container">
+        <div class="header-inner">
+            <a href="{{ S }}/" class="logo">Lumen <span>精选商城</span></a>
+            <nav class="nav-main">
+                <a href="{{ S }}/shop">全部商品</a>
+                <div class="nav-drop">
+                    <button type="button" class="nav-drop-btn">商品分类<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+                    <div class="nav-drop-panel">
+                        {% for c in nav_categories %}
+                        <a href="{{ S }}/shop?category={{ c.slug }}">{{ c.name }}<span>{{ c.product_count }}</span></a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <a href="{{ S }}/outfit" class="{% if active == 'outfit' %}is-current{% endif %}">场合穿搭</a>
+                <a href="{{ S }}/support" class="{% if active == 'support' %}is-current{% endif %}">小马客服</a>
+                {% if user %}
+                <a href="{{ S }}/account" class="{% if active == 'account' %}is-current{% endif %}">{{ user.name }}</a>
+                {% else %}
+                <a href="{{ S }}/account">登录</a>
+                {% endif %}
+                <a href="{{ S }}/cart" class="nav-cta cart-cta">购物车 <b id="cartCount">{{ cart_count }}</b></a>
+            </nav>
+            <form class="header-search" action="{{ S }}/shop" method="get" role="search">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+                <input type="search" name="q" placeholder="搜商品、品牌" value="{{ query }}" aria-label="搜索商品">
+            </form>
+            <button class="menu-toggle" id="menuToggle" aria-label="打开菜单"><span></span><span></span><span></span></button>
+        </div>
+    </div>
+</header>
+
+<div class="mobile-overlay" id="mobileOverlay"></div>
+<nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-close" id="mobileNavClose" aria-label="关闭菜单">&times;</button>
+    <ul class="mobile-nav-links">
+        <li><a href="{{ S }}/shop">全部商品</a></li>
+        {% for c in nav_categories %}
+        <li><a href="{{ S }}/shop?category={{ c.slug }}">{{ c.name }}</a></li>
+        {% endfor %}
+        <li><a href="{{ S }}/outfit">场合穿搭</a></li>
+        <li><a href="{{ S }}/support">小马客服</a></li>
+        <li><a href="{{ S }}/account">{% if user %}账户中心{% else %}登录 / 注册{% endif %}</a></li>
+    </ul>
+    <div class="mobile-nav-cta"><a href="{{ S }}/cart" class="btn-primary">购物车（{{ cart_count }}）</a></div>
+</nav>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+{% if surface == 'admin' %}
+<footer class="site-footer site-footer--admin">
+    <div class="container">
+        <p class="footer-copyright">© 2026 {{ settings.store_name }} 运营后台 · 这个地址只放后台，商城页面在 <a href="{{ S }}/">前台首页</a></p>
+    </div>
+</footer>
+{% else %}
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <p class="footer-logo">Lumen <span>精选商城</span></p>
+                <p class="footer-tagline">{{ store_stats.products }} 件在售商品、{{ store_stats.categories }} 个分类，价格与库存直接读数据库，下单后 30 分钟未支付自动释放。</p>
+                <div class="footer-contact-info">
+                    <p>客服邮箱：<a href="mailto:{{ settings.support_email }}">{{ settings.support_email }}</a></p>
+                    <p>在线咨询：<a href="{{ S }}/support">小马（站内智能助理）</a></p>
+                </div>
+            </div>
+            <div class="footer-column">
+                <h4 class="footer-column-title">商品分类</h4>
+                <ul class="footer-links">
+                    {% for c in nav_categories[:5] %}
+                    <li><a href="{{ S }}/shop?category={{ c.slug }}">{{ c.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4 class="footer-column-title">配送方案</h4>
+                <ul class="footer-links">
+                    {% for p in shipping_plans %}
+                    <li><a href="{{ S }}/shop">{{ p.name }}{% if p.eta %} · {{ p.eta }}{% endif %}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4 class="footer-column-title">购物帮助</h4>
+                <ul class="footer-links">
+                    <li><a href="{{ S }}/support">常见问题</a></li>
+                    <li><a href="{{ S }}/cart">购物车与优惠码</a></li>
+                    <li><a href="{{ S }}/account">我的订单</a></li>
+                    <li><a href="{{ admin_url }}/admin">后台入口</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p class="footer-copyright">© 2026 {{ settings.store_name }} · 演示站点，不产生真实扣款</p>
+            <div class="footer-social"><a href="{{ S }}/support">在线咨询</a><a href="mailto:{{ settings.support_email }}">邮件客服</a></div>
+        </div>
+    </div>
+</footer>
+{% endif %}
+
+{% if active != 'support' and surface != 'admin' %}{% include "partials/xiaoma.html" %}{% endif %}
+{% if surface == 'admin' %}
+<script>
+    const adminLogout = document.getElementById('adminLogout');
+    if (adminLogout) adminLogout.addEventListener('click', async () => {
+        // 先把响应体读完再跳转：导航抢在收body之前会被 Chromium 记成 ERR_ABORTED
+        const res = await fetch('/api/admin/logout', { method: 'POST' });
+        await res.json();
+        location.href = '/admin/login';
+    });
+</script>
+{% endif %}
+<script src="/static/js/maison.js?v={{ asset_v }}"></script>
+<script src="/static/js/site.js?v={{ asset_v }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 400 400" role="img">
+<!--lumen-demo-art-v2-->
+<desc>演示商品线稿：商品包装</desc>
+<rect width="400" height="400" fill="#f2f4fa"/>
+<ellipse cx="200" cy="344" rx="112" ry="14" fill="#0f172a" opacity=".07"/>
+<g>
+<g fill="none" stroke="#3f4c5c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M200 116l96 44v112l-96 44-96-44V160z" fill="#e7ebf1"/>
+<path d="M104 160l96 44 96-44M200 204v112"/></g>
+</g>
+</svg>

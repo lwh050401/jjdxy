@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}结算 · {{ settings.store_name }}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div class="container">
+        <p class="text-label">购物流程</p>
+        <h1 class="heading-display page-title">确认订单</h1>
+        <p class="text-body page-sub">提交后 30 分钟内未支付会自动关闭并释放库存</p>
+    </div>
+</section>
+
+{% if quote %}
+<form class="checkout-layout" id="checkoutForm">
+    <div class="container">
+        <div class="checkout-main">
+            <section class="panel">
+                <h2 class="panel-title">联系人</h2>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="email">邮箱 *</label><input class="form-input" id="email" name="email" type="email" required value="{{ user.email if user else '' }}"></div>
+                    <div class="form-group"><label class="form-label" for="phone">手机号</label><input class="form-input" id="phone" name="phone" type="tel" value="{{ user.phone if user else '' }}"></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">收货地址</h2>
+                {% if addresses %}
+                <div class="addr-pick">
+                    {% for a in addresses %}
+                    <label class="addr-card {% if loop.first %}on{% endif %}" data-receiver="{{ a.receiver }}" data-phone="{{ a.phone }}" data-province="{{ a.province }}" data-city="{{ a.city }}" data-district="{{ a.district }}" data-detail="{{ a.detail }}" data-postal="{{ a.postal or '' }}">
+                        <input type="radio" name="addr" value="{{ a.id }}" {% if loop.first %}checked{% endif %} hidden>
+                        <b>{{ a.receiver }} {{ a.phone }}</b>
+                        <span>{{ a.province }}{{ a.city }}{{ a.district }} {{ a.detail }}{% if a.postal %}（{{ a.postal }}）{% endif %}</span>
+                        {% if a.is_default_shipping %}<em class="addr-tag">默认</em>{% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="receiver">收货人 *</label><input class="form-input" id="receiver" required value="{{ addresses[0].receiver if addresses else (user.name if user else '') }}"></div>
+                    <div class="form-group"><label class="form-label" for="rphone">联系电话 *</label><input class="form-input" id="rphone" required value="{{ addresses[0].phone if addresses else '' }}"></div>
+                </div>
+                <div class="form-row form-row--3">
+                    <div class="form-group"><label class="form-label" for="province">省 / 直辖市 *</label><input class="form-input" id="province" required value="{{ addresses[0].province if addresses else '' }}"></div>
+                    <div class="form-group"><label class="form-label" for="city">市 *</label><input class="form-input" id="city" required value="{{ addresses[0].city if addresses else '' }}"></div>
+                    <div class="form-group"><label class="form-label" for="district">区 / 县 *</label><input class="form-input" id="district" required value="{{ addresses[0].district if addresses else '' }}"></div>
+                </div>
+                <div class="form-group"><label class="form-label" for="detail">详细地址 *</label><input class="form-input" id="detail" required placeholder="街道、门牌号" value="{{ addresses[0].detail if addresses else '' }}"></div>
+                <div class="form-group"><label class="form-label" for="postal">邮编</label><input class="form-input" id="postal" value="{{ addresses[0].postal if addresses else '' }}"></div>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">配送方案</h2>
+                <div class="opt-list">
+                    {% for p in shipping_plans %}
+                    <label class="opt-card {% if p.code == quote.plan.code %}on{% endif %}">
+                        <input type="radio" name="plan" value="{{ p.code }}" {% if p.code == quote.plan.code %}checked{% endif %} hidden>
+                        <b>{{ p.name }}</b>
+                        <span>{% if p.flat_cents %}{{ p.flat_cents | money }}{% else %}免费{% endif %}{% if p.free_over_cents %} · 满 {{ p.free_over_cents | money }} 免运费{% endif %}{% if p.eta %} · {{ p.eta }}{% endif %}</span>
+                        {% if p.description %}<em>{{ p.description }}</em>{% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">支付方式</h2>
+                <div class="opt-list">
+                    {% for pr in providers %}
+                    <label class="opt-card {% if loop.first %}on{% endif %}">
+                        <input type="radio" name="provider" value="{{ pr.code }}" {% if loop.first %}checked{% endif %} hidden>
+                        <b>{{ pr.name }}</b><span>{{ pr.note }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if user %}<p class="filter-hint">当前账户余额 {{ user.balance_cents | money }}{% if user.role == 'admin' %} · 管理员账号{% endif %}</p>{% endif %}
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">订单备注</h2>
+                <textarea class="form-textarea" id="buyerNote" rows="3" placeholder="例如：工作日送达、放前台"></textarea>
+            </section>
+        </div>
+
+        <aside class="summary">
+            <h2 class="heading-display summary-title">应付</h2>
+            <ul class="summary-items">
+                {% for it in quote["items"] %}
+                <li><img src="{{ it.image or '/static/img/placeholder.svg' }}" alt="{{ it.title }}"><span>{{ it.title }}<em>{{ it.variant_title }} × {{ it.qty }}</em></span><b>{{ it.line_total_cents | money }}</b></li>
+                {% endfor %}
+            </ul>
+            <dl class="summary-lines">
+                <div><dt>商品小计</dt><dd>{{ quote.subtotal_cents | money }}</dd></div>
+                {% if quote.discount_cents %}<div><dt>优惠码 {{ quote.coupon.code }}</dt><dd>-{{ quote.discount_cents | money }}</dd></div>{% endif %}
+                <div><dt>运费 · {{ quote.plan.name }}</dt><dd>{% if quote.shipping_cents %}{{ quote.shipping_cents | money }}{% else %}免费{% endif %}</dd></div>
+                <div><dt>税费</dt><dd>{{ quote.tax_cents | money }}</dd></div>
+                <div class="summary-total"><dt>合计</dt><dd id="totalText">{{ quote.total_cents | money }}</dd></div>
+            </dl>
+            {% if quote.coupon %}<p class="summary-note">优惠码 {{ quote.coupon.code }}：{{ quote.coupon.label }}</p>{% endif %}
+            <button type="submit" class="btn-primary btn-block" id="placeBtn">提交订单并支付</button>
+            <p class="summary-hint"><a href="/cart">返回购物车改数量</a></p>
+            <p class="checkout-msg" id="checkoutMsg" role="status"></p>
+        </aside>
+    </div>
+</form>
+{% else %}
+<section class="container">
+    <div class="empty"><p class="empty-title">没有可结算的商品</p><p>先去<a href="/shop">挑商品</a>，购物车里有货才能结算。</p></div>
+</section>
+{% endif %}
+{% endblock %}
